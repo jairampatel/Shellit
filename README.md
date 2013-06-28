@@ -1,0 +1,1 @@
+Shellit is a Reddit client for PowerShell. Simply run it without any parameters and you will be prompted to login (optional).
