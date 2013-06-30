@@ -1,9 +1,8 @@
-Shellit is a Reddit client for PowerShell. Simply run it without any parameters and you will be prompted to login (optional).
-
-Please note in order to run this script, you must have an ExecutionPolicy that allows 3rd party scripts to run. If you don't, you run run the following in your PowerShell window:
+Please note in order to run this script, you must have an ExecutionPolicy that allows 3rd party scripts to run. If you don't, you run run the following as an administrator in your PowerShell window:
 
 	Set-ExecutionPolicy RemoteSigned
 
+Shellit is a Reddit client for PowerShell. Simply run it without any parameters and you will be prompted to login (optional).
 
 
 Version 1.0
