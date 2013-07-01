@@ -1,6 +1,7 @@
 $Global:user_agent = "Shellit - Reddit client for Powershell";
 $Global:commands = @{"q" = "quit"; "number" = "article"; "n" = "next"; "p" = "previous"};
 $Global:modhash = "";
+$Global:cookie = "";
 $Global:current_count = [int]0;
 $Global:after = New-Object System.Collections.Stack;
 
@@ -28,10 +29,11 @@ function login(){
     $post_url = "http://www.reddit.com/api/login";
     
     [string]$response = Invoke-WebRequest -Uri $post_url -Method Post -UserAgent $Global:user_agent -Body $params;
-
+    
     if( $response.Contains("modhash") ){
         $json = ConvertFrom-Json $response;
-        $Global:modhash = $json.json.data.modhash
+        $Global:modhash = $json.json.data.modhash;
+        $Global:cookie = $json.json.data.cookie;
     }
     elseif( $response.contains("WRONG_PASSWORD") ){
         Write-Host "Wrong username/password";
@@ -54,13 +56,11 @@ function get_commands(){
 #returns the url of reddit based on what page you're on and if you're logged in
 function get_reddit_url(){
     $url_string = "http://www.reddit.com/.json";
-    if( ($Global:modhashh -ne "") -or ($Global:current_count -ne 0)){
+    if( ($Global:current_count -ne 0)){
         $url_string += "?";
     }
     $to_add = @();
-    if($Global:modhashh -ne ""){
-        $to_add += "modhash=$Global:modhashh";
-    }
+
     if($Global:current_count -ne 0){
         $to_add += "count=$Global:current_count";
         $to_add += "after=$($Global:after.Peek())";
@@ -76,14 +76,14 @@ function get_reddit_url(){
 
 #performs GET request and returns result as a string
 function get_request([string]$url){
-
+    Clear-Host;
     show_wait;
 
     $client = New-Object System.Net.WebClient;
     $client.Headers.Add("user-agent", $Global:user_agent);
-
+    $client.Headers.Add("Cookie","reddit_session=$Global:cookie");
     $string = $client.DownloadString($url);
-
+    
     Clear-Host;
     return $string;
 }
@@ -97,8 +97,6 @@ function parse_json([string]$string_to_parse){
 
 #shows the links for the current page of reddit you're on
 function show_links($json){
-    $children = $json.data.children;
-
     for($index = 0;$index -lt $json.data.children.length;$index++){
         Write-Host "[$($Global:current_count + $index)]" -ForegroundColor Cyan -NoNewline;
         Write-Host "$($json.data.children[$index].data.subreddit) - " -ForegroundColor Yellow -NoNewline;
@@ -131,7 +129,7 @@ function isNumeric ($x) {
 
 #checks if input is valid
 function is_valid_input($my_input) {
-    #if the input is in the command hash and is not a number (q) or if it's a number and is 0-24, return true
+    #if the input is in the command hash and is not a number (q) or if it's a number, return true
     if( ( ((isNumeric($my_input)) -eq $FALSE) -and (($Global:commands.ContainsKey([string]$my_input)) -eq $TRUE ) -and (([string]$my_input).Length -eq 1) ) -or 
         ( ( (isNumeric($my_input)) -eq $TRUE ) -and (([string]$my_input).Length -ge 1 ) ) ) {
         return $TRUE;
@@ -161,7 +159,6 @@ function continue_browsing(){
     if(($input -eq 'n') -or ($input -eq 'q')){
         exit_program;
     }
-    Clear-Host;   
 }
 #handles external links (non-self posts)
 function handle_internal($url, $text, $title){
