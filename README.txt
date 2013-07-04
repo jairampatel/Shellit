@@ -7,6 +7,11 @@ Please note in order to run this script, you must have an ExecutionPolicy that a
 Shellit is a Reddit client for PowerShell. Simply run it without any parameters and you will be prompted to login (optional).
 
 
+Version 1.0.1
+
+Users can view comments from any post
+
+
 Version 1.0
 
 Users are able to:
