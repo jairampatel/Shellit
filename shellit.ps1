@@ -4,6 +4,8 @@ $Global:modhash = "";
 $Global:cookie = "";
 $Global:current_count = [int]0;
 $Global:after = New-Object System.Collections.Stack;
+$Global:domain = @("imgur.com","i.imgur.com","youtube.com");
+$Global:extension = @("jpg","jpeg","gif","png");
 
 #exits program
 function exit_program(){
@@ -19,6 +21,17 @@ function get_confirmation($param){
     }
     return $confirmation;
 }
+
+#prompts user if they want to login
+function get_link_or_comment($param){
+    $prompt = $param + " " + "([l]ink/[c]omment/[q]uit)";
+    $confirmation = Read-Host $prompt
+    while ($confirmation -ne 'l' -and $confirmation -ne 'c' -and $confirmation -ne 'q'){
+        $confirmation = Read-Host $prompt;
+    }
+    return $confirmation;
+}
+
 #login to Reddit if you want to
 function login(){
     $user = Read-Host "Username";
@@ -128,15 +141,29 @@ function isNumeric ($x) {
 }
 
 #checks if input is valid
-function is_valid_input($my_input) {
+function is_valid_input($my_input, $json) {
     #if the input is in the command hash and is not a number (q) or if it's a number, return true
     if( ( ((isNumeric($my_input)) -eq $FALSE) -and (($Global:commands.ContainsKey([string]$my_input)) -eq $TRUE ) -and (([string]$my_input).Length -eq 1) ) -or 
         ( ( (isNumeric($my_input)) -eq $TRUE ) -and (([string]$my_input).Length -ge 1 ) ) ) {
+
         return $TRUE;
     }
     else{
         return $FALSE;
     }
+}
+
+#gets input from user
+function get_input($command_string, $data){
+    $input = "";  
+    $temp = 1;
+    while($temp -le 1){
+        $input = Read-Host $command_string;
+        if(is_valid_input $input $data -eq $true){
+            $temp++;
+        }
+    }
+    return $input;
 }
 
 #determines if url is a "self" link
@@ -160,6 +187,16 @@ function continue_browsing(){
         exit_program;
     }
 }
+
+#checks if the url/domain contains images/videos
+function is_supported($domain, $url){
+
+    if($Global:domain.Contains($domain) -or $Global:extension.Contains($url.Substring($url.LastIndexOf(".") + 1) ) ){
+        return $false;
+    }
+    return $true;
+}
+
 #handles external links (non-self posts)
 function handle_internal($url, $text, $title){
     $internal_json = parse_json(get_request($url + ".json"));
@@ -189,13 +226,24 @@ function handle_external($url){
 }
 #handle a link that the user chose
 function handle_link($data){
-   
+
     if(is_self $data.domain){
         handle_internal $data.url $data.selftext $data.title;
     }
     else{
-        handle_external $data.url ;
-    }
+        $response = get_link_or_comment "Do you want to view the link or the comments?";
+        
+        if($response -eq "c"){
+            $comment_url = "http://www.reddit.com" + $data.permalink;
+            handle_internal $comment_url $data.selftext $data.title;
+        }
+        elseif($response -eq "l"){
+            handle_external $data.url ;
+        }
+        elseif($response -eq "q"){
+            exit_program;
+        }
+    }          
 }
 
 #prompts user for command input
@@ -208,18 +256,11 @@ function process_commands(){
         show_links $json;
 
         #keep prompting for valid input
-        $temp = 1;
-        while($temp -le 1){
-            $input = Read-Host $command_string;
-            if(is_valid_input($input) -eq $true){
-                $temp++;
-            }
-        }
+        $input = get_input $command_string $json;
+        
         if($input -eq 'q'){
             exit_program;
         }
-        
-        
         if($input -eq 'n'){
             go_next $json;
         }
