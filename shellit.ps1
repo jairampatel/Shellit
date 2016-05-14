@@ -8,12 +8,12 @@ $Global:domain = @("imgur.com","i.imgur.com","youtube.com");
 $Global:extension = @("jpg","jpeg","gif","png");
 
 #exits program
-function exit_program(){
+function Exit-Shellit(){
     Write-Host "Good bye";
     Exit;
 }
 #prompts user if they want to login
-function get_confirmation($param){
+function Get-Confirmation($param){
     $prompt = $param + " " + "([y]es/[n]o/[q]uit)";
     $confirmation = Read-Host $prompt
     while ($confirmation -ne 'y' -and $confirmation -ne 'n' -and $confirmation -ne 'q'){
@@ -23,7 +23,7 @@ function get_confirmation($param){
 }
 
 #prompts user if they want to login
-function get_link_or_comment($param){
+function Get-LinkOrComment($param){
     $prompt = $param + " " + "([l]ink/[c]omment/[q]uit)";
     $confirmation = Read-Host $prompt
     while ($confirmation -ne 'l' -and $confirmation -ne 'c' -and $confirmation -ne 'q'){
@@ -33,7 +33,7 @@ function get_link_or_comment($param){
 }
 
 #login to Reddit if you want to
-function login(){
+function Login-RedditAccount(){
     $user = Read-Host "Username";
     $pass = Read-Host -AsSecureString "Password";
 
@@ -58,7 +58,7 @@ function login(){
 }
 
 #returns string of commands in the format of "command_string = command"
-function get_commands(){
+function Get-ShellitCommands(){
     $Global:commands_string = "| ";
     foreach ($h in $Global:commands.GetEnumerator()) {
         $Global:commands_string += $h.Name + " = " + $h.Value + " | ";
@@ -67,7 +67,7 @@ function get_commands(){
 }
 
 #returns the url of reddit based on what page you're on and if you're logged in
-function get_reddit_url(){
+function Get-RedditURL(){
     $url_string = "http://www.reddit.com/.json";
     if( ($Global:current_count -ne 0)){
         $url_string += "?";
@@ -88,9 +88,9 @@ function get_reddit_url(){
 }
 
 #performs GET request and returns result as a string
-function get_request([string]$url){
+function Invoke-RedditGet([string]$url){
     Clear-Host;
-    show_wait;
+    Invoke-WaitMessage;
 
     $client = New-Object System.Net.WebClient;
     $client.Headers.Add("user-agent", $Global:user_agent);
@@ -102,14 +102,14 @@ function get_request([string]$url){
 }
 
 #converts json-formatted string into a parseable format
-function parse_json([string]$string_to_parse){
+function Parse-JSON([string]$string_to_parse){
     $json = ConvertFrom-Json $string_to_parse;
 
     return $json;
 }
 
 #shows the links for the current page of reddit you're on
-function show_links($json){
+function Show-Links($json){
     for($index = 0;$index -lt $json.data.children.length;$index++){
         Write-Host "[$($Global:current_count + $index)]" -ForegroundColor Cyan -NoNewline;
         Write-Host "$($json.data.children[$index].data.subreddit) - " -ForegroundColor Yellow -NoNewline;
@@ -118,7 +118,7 @@ function show_links($json){
 }
 
 #go to previous page
-function go_previous($json){
+function Get-PreviousPage($json){
     if($Global:current_count -gt 0){
         $Global:current_count -= 25;
         $Global:after.pop;
@@ -126,12 +126,12 @@ function go_previous($json){
 }
 
 #go to next page
-function go_next($json){
+function Get-NextPage($json){
     $Global:current_count += 25;
     $Global:after.push("$($json.data.after)");
 }
 #checks if input is a number
-function isNumeric ($x) {
+function Test-NumericValue ($x) {
     try {
         0 + $x | Out-Null
         return $TRUE
@@ -141,10 +141,10 @@ function isNumeric ($x) {
 }
 
 #checks if input is valid
-function is_valid_input($my_input, $json) {
+function Test-ValidInput($my_input, $json) {
     #if the input is in the command hash and is not a number (q) or if it's a number, return true
-    if( ( ((isNumeric($my_input)) -eq $FALSE) -and (($Global:commands.ContainsKey([string]$my_input)) -eq $TRUE ) -and (([string]$my_input).Length -eq 1) ) -or 
-        ( ( (isNumeric($my_input)) -eq $TRUE ) -and (([string]$my_input).Length -ge 1 ) ) ) {
+    if( ( ((Test-NumericValue($my_input)) -eq $FALSE) -and (($Global:commands.ContainsKey([string]$my_input)) -eq $TRUE ) -and (([string]$my_input).Length -eq 1) ) -or 
+        ( ( (Test-NumericValue($my_input)) -eq $TRUE ) -and (([string]$my_input).Length -ge 1 ) ) ) {
 
         return $TRUE;
     }
@@ -154,12 +154,12 @@ function is_valid_input($my_input, $json) {
 }
 
 #gets input from user
-function get_input($command_string, $data){
+function Get-ShellitInput($command_string, $data){
     $input = "";  
     $temp = 1;
     while($temp -le 1){
         $input = Read-Host $command_string;
-        if(is_valid_input $input $data -eq $true){
+        if(Test-ValidInput $input $data -eq $true){
             $temp++;
         }
     }
@@ -167,7 +167,7 @@ function get_input($command_string, $data){
 }
 
 #determines if url is a "self" link
-function is_self($domain){
+function Test-SelfLink($domain){
     if($domain.contains("reddit.com") -or $domain.contains("self.")){
         return $true;
     }
@@ -177,19 +177,19 @@ function is_self($domain){
 }
 
 #displays waiting message
-function show_wait(){
+function Invoke-WaitMessage(){
     Write-Host "Please wait...";
 }
 #asks user if they want to continue browsing reddit
-function continue_browsing(){
-    $input = get_confirmation "Continue browsing reddit?";
+function Continue-Browsing(){
+    $input = Get-Confirmation "Continue browsing reddit?";
     if(($input -eq 'n') -or ($input -eq 'q')){
-        exit_program;
+        Exit-Shellit;
     }
 }
 
 #checks if the url/domain contains images/videos
-function is_supported($domain, $url){
+function Test-SupportedLink($domain, $url){
 
     if($Global:domain.Contains($domain) -or $Global:extension.Contains($url.Substring($url.LastIndexOf(".") + 1) ) ){
         return $false;
@@ -198,8 +198,8 @@ function is_supported($domain, $url){
 }
 
 #handles external links (non-self posts)
-function handle_internal($url, $text, $title){
-    $internal_json = parse_json(get_request($url + ".json"));
+function Handle-InternalLink($url, $text, $title){
+    $internal_json = Parse-JSON(Invoke-RedditGet($url + ".json"));
     
     Write-Host "Title: " -NoNewline -ForegroundColor Cyan;
     Write-Host "$title`n";
@@ -212,71 +212,71 @@ function handle_internal($url, $text, $title){
         Write-Host "$($internal_json[1].data.children[$index].data.body)";
     }
     
-    continue_browsing; 
+    Continue-Browsing; 
 }
 #handles external links (non-self posts)
-function handle_external($url){
+function Handle-ExternalLink($url){
 
-    $html = get_request($url);
-    $text = Html-ToText($html);
+    $html = Invoke-RedditGet($url);
+    $text = ConvertFrom-HTML($html);
 
     Write-Host $text;
 
-    continue_browsing;
+    Continue-Browsing;
 }
 #handle a link that the user chose
-function handle_link($data){
+function Handle-Link($data){
 
-    if(is_self $data.domain){
-        handle_internal $data.url $data.selftext $data.title;
+    if(Test-SelfLink $data.domain){
+        Handle-InternalLink $data.url $data.selftext $data.title;
     }
     else{
-        $response = get_link_or_comment "Do you want to view the link or the comments?";
+        $response = Get-LinkOrComment "Do you want to view the link or the comments?";
         
         if($response -eq "c"){
             $comment_url = "http://www.reddit.com" + $data.permalink;
-            handle_internal $comment_url $data.selftext $data.title;
+            Handle-InternalLink $comment_url $data.selftext $data.title;
         }
         elseif($response -eq "l"){
-            handle_external $data.url ;
+            Handle-ExternalLink $data.url ;
         }
         elseif($response -eq "q"){
-            exit_program;
+            Exit-Shellit;
         }
     }          
 }
 
 #prompts user for command input
-function process_commands(){
-    $command_string = get_commands;
+function Process-ShellitCommands(){
+    $command_string = Get-ShellitCommands;
     $input = "";
     while(1 -le 1){
         
-        $json = parse_json(get_request(get_reddit_url));
-        show_links $json;
+        $json = Parse-JSON(Invoke-RedditGet(Get-RedditURL));
+        Show-Links $json;
 
         #keep prompting for valid input
-        $input = get_input $command_string $json;
+        $input = Get-ShellitInput $command_string $json;
         
         if($input -eq 'q'){
-            exit_program;
+            Exit-Shellit;
         }
         if($input -eq 'n'){
-            go_next $json;
+            Get-NextPage $json;
         }
         elseif($input -eq 'p'){
-            go_previous $json;
+            Get-PreviousPage $json;
         }
-        elseif(IsNumeric($input)){
+        elseif(Test-NumericValue($input)){
             $index = [int]$input % 25;
             $data = $json.data.children[$index].data;              
-            handle_link $data;
+            Handle-Link $data;
         }
     }
 }
 
 #converts html to text to display in console
-function Html-ToText {
+function ConvertFrom-HTML {
     param([System.String] $html)
     
     # remove line breaks, replace with spaces
@@ -353,12 +353,12 @@ function Html-ToText {
 
 #Start program execution
 
-$login_result = get_confirmation "Would you like to login to Reddit?";
+$LoginResult = Get-Confirmation "Would you like to login to Reddit?";
 
-if ($login_result -eq 'y'){
-    login;
+if ($LoginResult -eq 'y'){
+    Login-RedditAccount;
 }
-elseif ($login_result -eq 'q'){
-    exit_program;
+elseif ($LoginResult -eq 'q'){
+    Exit-Shellit;
 }
-process_commands;
+Process-ShellitCommands;
