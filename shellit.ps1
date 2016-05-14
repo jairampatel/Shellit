@@ -1,3 +1,9 @@
+Param
+    (
+    [Parameter(Mandatory=$False,Position=0)]
+    [string]$SubReddit
+    )
+
 $Global:user_agent = "Shellit - Reddit client for Powershell";
 $Global:commands = @{"q" = "quit"; "number" = "article"; "n" = "next"; "p" = "previous"};
 $Global:modhash = "";
@@ -68,7 +74,9 @@ function Get-ShellitCommands(){
 
 #returns the url of reddit based on what page you're on and if you're logged in
 function Get-RedditURL(){
-    $url_string = "http://www.reddit.com/.json";
+    if ($SubReddit -ne ""){    $url_string = "http://www.reddit.com/r/$SubReddit/.json"}
+    else {$url_string = "http://www.reddit.com/.json"}
+
     if( ($Global:current_count -ne 0)){
         $url_string += "?";
     }
